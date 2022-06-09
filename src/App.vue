@@ -34,7 +34,7 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                 v-model="ticker"
-                @:keydown.enter="add"
+                v-on:keydown.enter="add"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -46,24 +46,12 @@
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
               <span
+                v-for="coin in topCoins"
+                :key="coin"
+                @click="ticker = coin"
                 class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
               >
-                BTC
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                DOGE
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                BCH
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                CHD
+                {{ coin }}
               </span>
             </div>
             <div class="text-sm text-red-600">Такой тикер уже добавлен</div>
@@ -113,7 +101,7 @@
             </div>
             <div class="w-full border-t border-gray-200"></div>
             <button
-              @click="handleDelete(t)"
+              @click.stop="handleDelete(t)"
               class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
             >
               <svg
@@ -137,7 +125,7 @@
 
       <section v-if="sel" class="relative">
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          VUE - USD
+          {{ sel.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div class="bg-purple-800 border w-10 h-24"></div>
@@ -178,37 +166,49 @@
 </template>
 
 <script>
+const api_key =
+  "07491a0d00d7ece2c90a41446790815a43ee72b29e42ccff2ecb7147c1671675";
+
 export default {
   name: "App",
   data() {
     return {
-      ticker: "default",
-      tickers: [
-        {
-          name: "demo",
-          price: "0",
-        },
-        {
-          name: "btc",
-          price: "40000.00",
-        },
-      ],
+      ticker: "",
+      tickers: [],
       sel: null,
+      graph: [],
+      topCoins: ["BTC", "DOGE", "BCH", "CHD"],
     };
   },
   methods: {
     add() {
-      console.log("add");
-      if (!this.ticker) return;
-      const newTicker = {
+      console.log("add", this.ticker);
+      const currentTicker = {
         name: this.ticker,
         price: "-",
       };
-      this.tickers.push(newTicker);
+      this.tickers.push(currentTicker);
+
+      setInterval(async () => {
+        console.log("newTicker.name", currentTicker.name);
+        console.log("this.sel.name", this.sel.name);
+
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=${api_key}`
+        );
+        const data = await f.json();
+
+        this.tickers.find((t) => t.name === currentTicker.name).price =
+          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecission(2);
+
+        if (this.sel.name === currentTicker.name) {
+          this.graph.push(data.USD);
+        }
+      }, 3000);
+
       this.ticker = "";
     },
     handleDelete(tickerToRemove) {
-      console.log("evt", this.ticker);
       this.tickers = this.tickers.filter((item) => item !== tickerToRemove);
     },
   },
