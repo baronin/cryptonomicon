@@ -1,29 +1,6 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
-    <!-- <div
-      class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
-    >
-      <svg
-        class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          class="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="4"
-        ></circle>
-        <path
-          class="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        ></path>
-      </svg>
-    </div> -->
+    <spinner v-if="!tickers.length" />
     <div class="container">
       <section>
         <div class="flex">
@@ -34,6 +11,7 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                 v-model="ticker"
+                @input="checkTickets"
                 @keydown.enter="add"
                 type="text"
                 name="wallet"
@@ -66,7 +44,9 @@
                 CHD
               </span>
             </div>
-            <div class="text-sm text-red-600">Такой тикер уже добавлен</div>
+            <div v-if="hasTicker" class="text-sm text-red-600">
+              Такой тикер уже добавлен
+            </div>
           </div>
         </div>
         <button
@@ -179,8 +159,13 @@
 </template>
 
 <script>
+import Spinner from "./components/Spinner.vue";
+
 export default {
   name: "App",
+  components: {
+    Spinner
+  },
   data() {
     return {
       ticker: "default",
@@ -194,13 +179,23 @@ export default {
           price: "40000.00"
         }
       ],
+      hasTicker: false,
       sel: null
     };
   },
   methods: {
+    checkHasTicker() {
+      return (this.hasTicker = this.tickers.find(
+        (ticker) => ticker.name === this.ticker
+      ));
+    },
     add() {
-      console.log("add");
+      console.log("add", this.ticker);
       if (!this.ticker) return;
+      this.hasTicker = this.tickers.find(
+        (ticker) => ticker.name === this.ticker
+      );
+      if (this.hasTicker) return;
       const newTicker = {
         name: this.ticker,
         price: "-"
@@ -212,6 +207,10 @@ export default {
       console.log("tickerToRemove", tickerToRemove);
       console.log("evt", this.ticker);
       this.tickers = this.tickers.filter((item) => item !== tickerToRemove);
+    },
+    checkTickets(e) {
+      console.log("check", e.target.value);
+      console.log("checkHasTicker", this.checkHasTicker());
     }
   }
 };
