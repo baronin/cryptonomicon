@@ -1,3 +1,4 @@
 module.exports = {
-  trailingComma: false,
+  trailingComma: "none",
+  endOfLine: "auto"
 };

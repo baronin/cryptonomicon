@@ -100,7 +100,7 @@
             @click="sel = t"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
             :class="{
-              'border-4': sel === t,
+              'border-4': sel === t
             }"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
@@ -187,14 +187,14 @@ export default {
       tickers: [
         {
           name: "demo",
-          price: "0",
+          price: "0"
         },
         {
           name: "btc",
-          price: "40000.00",
-        },
+          price: "40000.00"
+        }
       ],
-      sel: null,
+      sel: null
     };
   },
   methods: {
@@ -203,7 +203,7 @@ export default {
       if (!this.ticker) return;
       const newTicker = {
         name: this.ticker,
-        price: "-",
+        price: "-"
       };
       this.tickers.push(newTicker);
       this.ticker = "";
@@ -212,9 +212,7 @@ export default {
       console.log("tickerToRemove", tickerToRemove);
       console.log("evt", this.ticker);
       this.tickers = this.tickers.filter((item) => item !== tickerToRemove);
-    },
-  },
+    }
+  }
 };
 </script>
-
-<style src="./app.css"></style>
