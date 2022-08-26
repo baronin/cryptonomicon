@@ -11,7 +11,7 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                 v-model="ticker"
-                @input="checkTickets"
+                @input="onInputTickets"
                 @keydown.enter="add"
                 type="text"
                 name="wallet"
@@ -20,37 +20,20 @@
                 placeholder="Например DOGE"
               />
             </div>
-            <div
-              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
-            >
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                BTC
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                DOGE
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                BCH
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                CHD
-              </span>
-            </div>
+            <autocomplate
+              v-show="isOpen"
+              v-if="newCoin.length"
+              :coins="newCoin"
+              @click="onSelectCoin($event.target.textContent)"
+              @mousedown.prevent
+            />
             <div v-if="hasTicker" class="text-sm text-red-600">
               Такой тикер уже добавлен
             </div>
           </div>
         </div>
         <button
-          @click="add"
+          @click="handleAddCoin"
           type="button"
           class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
@@ -159,15 +142,29 @@
 </template>
 
 <script>
+import Autocomplate from "./components/Autocomplate.vue";
 import Spinner from "./components/Spinner.vue";
+import coinsListJson from "./mockData/coinsList.json";
 
 export default {
   name: "App",
   components: {
-    Spinner
+    Spinner,
+    Autocomplate
+  },
+  mounted() {
+    if (coinsListJson.Response === "Success") {
+      for (let key of Object.keys(Object.assign(coinsListJson.Data))) {
+        this.coinsList.push(key.toLocaleLowerCase());
+      }
+    }
+    document.addEventListener("click", this.handleClickOutside);
   },
   data() {
     return {
+      isOpen: false,
+      newCoin: [],
+      coinsList: [],
       ticker: "default",
       tickers: [
         {
@@ -184,18 +181,15 @@ export default {
     };
   },
   methods: {
-    checkHasTicker() {
-      return (this.hasTicker = this.tickers.find(
-        (ticker) => ticker.name === this.ticker
-      ));
+    checkCoin(e) {
+      if (!e.target.textContent) return;
+      this.ticker = e.target.textContent;
     },
-    add() {
-      console.log("add", this.ticker);
-      if (!this.ticker) return;
-      this.hasTicker = this.tickers.find(
-        (ticker) => ticker.name === this.ticker
-      );
-      if (this.hasTicker) return;
+    handleAddCoin() {
+      this.hasTicker = this.checkHasTicker;
+      this.newCoin = [];
+      if (!this.ticker.length || this.hasTicker) return;
+
       const newTicker = {
         name: this.ticker,
         price: "-"
@@ -204,14 +198,40 @@ export default {
       this.ticker = "";
     },
     handleDelete(tickerToRemove) {
-      console.log("tickerToRemove", tickerToRemove);
-      console.log("evt", this.ticker);
       this.tickers = this.tickers.filter((item) => item !== tickerToRemove);
     },
-    checkTickets(e) {
-      console.log("check", e.target.value);
-      console.log("checkHasTicker", this.checkHasTicker());
+    onInputTickets() {
+      this.hasTicker = false;
+      this.filterResult();
+      this.isOpen = true;
+
+      this.checkHasTicker ? (this.hasTicker = true) : (this.hasTicker = false);
+    },
+    filterResult() {
+      this.newCoin = this.coinsList
+        .filter((item) => {
+          return item.toLowerCase().indexOf(this.ticker.toLowerCase()) > -1;
+        })
+        .slice(0, 4);
+    },
+    onSelectCoin(e) {
+      this.ticker = e;
+      this.newCoin = [];
+    },
+    handleClickOutside(evt) {
+      if (!this.$el.contains(evt.target)) {
+        this.isOpen = false;
+        this.newCoin = [];
+      }
     }
+  },
+  computed: {
+    checkHasTicker() {
+      return this.tickers.find((item) => item.name === this.ticker);
+    }
+  },
+  unmounted() {
+    document.removeEventListener("click", this.handleClickOutside);
   }
 };
 </script>
