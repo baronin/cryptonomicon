@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
-    <spinner v-if="!tickers.length" />
+    <spinner v-if="isLoading" />
     <div class="container">
       <section>
         <div class="flex">
@@ -12,7 +12,7 @@
               <input
                 v-model="ticker"
                 @input="onInputTickets"
-                @keydown.enter="add"
+                @keydown.enter="handleAddCoin"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -27,6 +27,18 @@
               @click="onSelectCoin($event.target.textContent)"
               @mousedown.prevent
             />
+            <div
+              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
+            >
+              <span
+                v-for="coin in topCoins"
+                :key="coin"
+                @click="ticker = coin"
+                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
+              >
+                {{ coin }}
+              </span>
+            </div>
             <div v-if="hasTicker" class="text-sm text-red-600">
               Такой тикер уже добавлен
             </div>
@@ -145,12 +157,37 @@
 import Autocomplate from "./components/Autocomplate.vue";
 import Spinner from "./components/Spinner.vue";
 import coinsListJson from "./mockData/coinsList.json";
+const api_key =
+  "07491a0d00d7ece2c90a41446790815a43ee72b29e42ccff2ecb7147c1671675";
 
 export default {
   name: "App",
   components: {
     Spinner,
     Autocomplate
+  },
+  data() {
+    return {
+      isLoading: false,
+      isOpen: false,
+      newCoin: [],
+      coinsList: [],
+      ticker: "",
+      tickers: [],
+      hasTicker: false,
+      sel: null,
+      graph: [],
+      topCoins: ["BTC", "DOGE", "BCH", "CHD"]
+    };
+  },
+  created() {
+    const tickersData = localStorage.getItem("cryptonomicon-list");
+    if (tickersData) {
+      this.tickers = JSON.parse(tickersData);
+      this.tickers.forEach((ticker) => {
+        this.subscribeToUpdates(ticker.name);
+      });
+    }
   },
   mounted() {
     if (coinsListJson.Response === "Success") {
@@ -160,42 +197,42 @@ export default {
     }
     document.addEventListener("click", this.handleClickOutside);
   },
-  data() {
-    return {
-      isOpen: false,
-      newCoin: [],
-      coinsList: [],
-      ticker: "default",
-      tickers: [
-        {
-          name: "demo",
-          price: "0"
-        },
-        {
-          name: "btc",
-          price: "40000.00"
-        }
-      ],
-      hasTicker: false,
-      sel: null
-    };
-  },
   methods: {
+    subscribeToUpdates(tickerName) {
+      setInterval(async () => {
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=${api_key}`
+        );
+        const data = await f.json();
+
+        this.tickers.find((t) => t.name === tickerName).price =
+          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecission(2);
+
+        if (this.sel.name === tickerName) {
+          this.graph.push(data.USD);
+        }
+      }, 5000);
+
+      this.ticker = "";
+    },
     checkCoin(e) {
       if (!e.target.textContent) return;
       this.ticker = e.target.textContent;
     },
     handleAddCoin() {
-      this.hasTicker = this.checkHasTicker;
-      this.newCoin = [];
-      if (!this.ticker.length || this.hasTicker) return;
+      // this.newCoin = [];
+      // if (!this.ticker.length) return;
 
-      const newTicker = {
+      const currentTicker = {
         name: this.ticker,
         price: "-"
       };
-      this.tickers.push(newTicker);
-      this.ticker = "";
+      console.log("this.tickers", this.tickers);
+      debugger;
+      this.tickers.push(currentTicker);
+
+      localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));
+      this.subscribeToUpdates(currentTicker.name);
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((item) => item !== tickerToRemove);
@@ -205,7 +242,7 @@ export default {
       this.filterResult();
       this.isOpen = true;
 
-      this.checkHasTicker ? (this.hasTicker = true) : (this.hasTicker = false);
+      // this.checkHasTicker ? (this.hasTicker = true) : (this.hasTicker = false);
     },
     filterResult() {
       this.newCoin = this.coinsList
@@ -225,11 +262,11 @@ export default {
       }
     }
   },
-  computed: {
-    checkHasTicker() {
-      return this.tickers.find((item) => item.name === this.ticker);
-    }
-  },
+  // computed: {
+  //   checkHasTicker() {
+  //     return this.tickers.find((item) => item.name === this.ticker);
+  //   }
+  // },
   unmounted() {
     document.removeEventListener("click", this.handleClickOutside);
   }
