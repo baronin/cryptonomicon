@@ -20,13 +20,13 @@
                 placeholder="Например DOGE"
               />
             </div>
-            <autocomplate
+            <!-- <autocomplate
               v-show="isOpen"
               v-if="newCoin.length"
               :coins="newCoin"
               @click="onSelectCoin($event.target.textContent)"
               @mousedown.prevent
-            />
+            /> -->
             <div
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
@@ -68,11 +68,33 @@
 
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-600 my-4" />
+
+        <div class="mb-5">
+          <button
+            v-if="page > 1"
+            type="button"
+            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l"
+            @click="page = page - 1"
+          >
+            Назад
+          </button>
+          <button
+            v-if="hasNextPage"
+            type="button"
+            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-r"
+            @click="nextPage"
+          >
+            Вперед
+          </button>
+        </div>
+        <p>Фильтр: <input v-model="filter" /></p>
+        <p>Страница {{ page }}</p>
+        <hr class="w-full border-t border-gray-600 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-            v-for="t in tickers"
+            v-for="t in filteredTickers()"
             :key="t.name"
-            @click="sel = t"
+            @click="select(t)"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
             :class="{
               'border-4': sel === t
@@ -116,10 +138,12 @@
           {{ sel.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div class="bg-purple-800 border w-10 h-24"></div>
-          <div class="bg-purple-800 border w-10 h-32"></div>
-          <div class="bg-purple-800 border w-10 h-48"></div>
-          <div class="bg-purple-800 border w-10 h-16"></div>
+          <div
+            v-for="bar in normalizeGraph()"
+            :key="bar"
+            :style="{ height: `${bar}%` }"
+            class="bg-purple-800 border w-10"
+          ></div>
         </div>
         <button
           @click="sel = null"
@@ -154,7 +178,7 @@
 </template>
 
 <script>
-import Autocomplate from "./components/Autocomplate.vue";
+// import Autocomplate from "./components/Autocomplate.vue";
 import Spinner from "./components/Spinner.vue";
 import coinsListJson from "./mockData/coinsList.json";
 const api_key =
@@ -163,8 +187,8 @@ const api_key =
 export default {
   name: "App",
   components: {
-    Spinner,
-    Autocomplate
+    Spinner
+    // Autocomplate
   },
   data() {
     return {
@@ -173,14 +197,27 @@ export default {
       newCoin: [],
       coinsList: [],
       ticker: "",
+      filter: "",
       tickers: [],
       hasTicker: false,
       sel: null,
       graph: [],
-      topCoins: ["BTC", "DOGE", "BCH", "CHD"]
+      topCoins: ["BTC", "DOGE", "BCH", "CHD"],
+      page: 1,
+      hasNextPage: true
     };
   },
   created() {
+    const windowData = Object.fromEntries(
+      new URL(window.location).searchParams.entries()
+    );
+    if (windowData.filter) {
+      this.filter = windowData.filter;
+    }
+    if (windowData.page) {
+      this.page = windowData.page;
+    }
+
     const tickersData = localStorage.getItem("cryptonomicon-list");
     if (tickersData) {
       this.tickers = JSON.parse(tickersData);
@@ -198,20 +235,32 @@ export default {
     document.addEventListener("click", this.handleClickOutside);
   },
   methods: {
+    nextPage() {
+      this.page = this.page + 1;
+    },
+    filteredTickers() {
+      const start = (this.page - 1) * 6;
+      const end = this.page * 6;
+      const filteredTickers = this.tickers.filter((ticker) =>
+        ticker.name.includes(this.filter)
+      );
+
+      this.hasNextPage = filteredTickers.length > end;
+      return filteredTickers.slice(start, end);
+    },
     subscribeToUpdates(tickerName) {
       setInterval(async () => {
         const f = await fetch(
           `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=${api_key}`
         );
         const data = await f.json();
-
         this.tickers.find((t) => t.name === tickerName).price =
           data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecission(2);
 
-        if (this.sel.name === tickerName) {
+        if (this.sel?.name === tickerName) {
           this.graph.push(data.USD);
         }
-      }, 5000);
+      }, 60000);
 
       this.ticker = "";
     },
@@ -222,20 +271,27 @@ export default {
     handleAddCoin() {
       // this.newCoin = [];
       // if (!this.ticker.length) return;
-
+      const hasTicker = this.tickers.find((item) => item.name === this.ticker);
+      if (hasTicker) return;
       const currentTicker = {
         name: this.ticker,
         price: "-"
       };
-      console.log("this.tickers", this.tickers);
-      debugger;
       this.tickers.push(currentTicker);
-
       localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));
       this.subscribeToUpdates(currentTicker.name);
+      this.filter = "";
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((item) => item !== tickerToRemove);
+    },
+    normalizeGraph() {
+      const maxValue = Math.max(...this.graph);
+      const minValue = Math.min(...this.graph);
+      // 5 + ((price - minValue) * 95) = 5 процентов у нас будет всегда
+      return this.graph.map(
+        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      );
     },
     onInputTickets() {
       this.hasTicker = false;
@@ -251,6 +307,10 @@ export default {
         })
         .slice(0, 4);
     },
+    select(ticker) {
+      this.sel = ticker;
+      this.graph = [];
+    },
     onSelectCoin(e) {
       this.ticker = e;
       this.newCoin = [];
@@ -260,6 +320,23 @@ export default {
         this.isOpen = false;
         this.newCoin = [];
       }
+    }
+  },
+  watch: {
+    filter() {
+      this.page = 1;
+      history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+      );
+    },
+    page() {
+      history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+      );
     }
   },
   // computed: {
