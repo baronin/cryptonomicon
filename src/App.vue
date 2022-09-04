@@ -12,7 +12,7 @@
               <input
                 v-model="ticker"
                 @input="onInputTickets"
-                @keydown.enter="handleAddCoin"
+                @keydown.enter="add"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -45,7 +45,7 @@
           </div>
         </div>
         <button
-          @click="handleAddCoin"
+          @click="add"
           type="button"
           class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
@@ -105,7 +105,7 @@
                 {{ t.name }}
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ t.price }}
+                {{ formatPrice(Number(t.price)) }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
@@ -181,8 +181,7 @@
 // import Autocomplate from "./components/Autocomplate.vue";
 import Spinner from "./components/Spinner.vue";
 import coinsListJson from "./mockData/coinsList.json";
-const api_key =
-  "07491a0d00d7ece2c90a41446790815a43ee72b29e42ccff2ecb7147c1671675";
+import { api } from "./api";
 
 export default {
   name: "App",
@@ -226,12 +225,17 @@ export default {
     });
 
     const tickersData = localStorage.getItem("cryptonomicon-list");
+
     if (tickersData) {
       this.tickers = JSON.parse(tickersData);
       this.tickers.forEach((ticker) => {
-        this.subscribeToUpdates(ticker.name);
+        api.subscribeToTicker(ticker.name, (newPrice) =>
+          this.updateTicker(ticker.name, newPrice)
+        );
       });
     }
+
+    setInterval(this.updateTickers, 200000);
   },
   mounted() {
     if (coinsListJson.Response === "Success") {
@@ -276,31 +280,28 @@ export default {
     }
   },
   methods: {
+    updateTicker(tickerName, price) {
+      this.tickers
+        .filter((t) => t.name === tickerName)
+        .forEach((t) => (t.price = price));
+    },
+    formatPrice(price) {
+      if (price === "-") return price;
+      return price > 1 ? price.toFixed(2) : price.toPrecision(2);
+    },
     nextPage() {
       this.page = Number(this.page) + 1;
     },
 
-    subscribeToUpdates(tickerName) {
-      setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=${api_key}`
-        );
-        const data = await f.json();
-        this.tickers.find((t) => t.name === tickerName).price =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecission(2);
+    /* async updateTickers() {
+      if (!this.tickers.length) return;
 
-        if (this.selectedTicker?.name === tickerName) {
-          this.graph.push(data.USD);
-        }
-      }, 60000);
-
-      this.ticker = "";
-    },
-    checkCoin(e) {
-      if (!e.target.textContent) return;
-      this.ticker = e.target.textContent;
-    },
-    handleAddCoin() {
+      this.tickers.forEach((ticker) => {
+        const price = exchangeData[ticker.name.toUpperCase()];
+        ticker.price = price ?? "-";
+      });
+    }, */
+    add() {
       // this.newCoin = [];
       // if (!this.ticker.length) return;
       const hasTicker = this.tickers.find((item) => item.name === this.ticker);
@@ -312,9 +313,11 @@ export default {
       };
 
       this.tickers = [...this.tickers, currentTicker];
+      this.ticker = "";
       this.filter = "";
-
-      this.subscribeToUpdates(currentTicker.name);
+      api.subscribeToTicker(currentTicker.name, (newPrice) =>
+        this.updateTicker(currentTicker.name, newPrice)
+      );
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((item) => item !== tickerToRemove);
@@ -322,6 +325,7 @@ export default {
       if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
       }
+      api.unsubscribeFromTicker(tickerToRemove.name);
     },
     onInputTickets() {
       this.hasTicker = false;
