@@ -87,7 +87,7 @@
             Вперед
           </button>
         </div>
-        <p>Фильтр: <input v-model="filter" /></p>
+        <p>Фильтр: <input v-model="filter" placeholder="filter" /></p>
         <p>Страница {{ page }}</p>
         <hr class="w-full border-t border-gray-600 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -105,7 +105,7 @@
                 {{ t.name }}
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ formatPrice(Number(t.price)) }}
+                {{ formatPrice(t.price) }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
@@ -225,17 +225,18 @@ export default {
     });
 
     const tickersData = localStorage.getItem("cryptonomicon-list");
-
+    console.log("tickersData", tickersData);
     if (tickersData) {
       this.tickers = JSON.parse(tickersData);
       this.tickers.forEach((ticker) => {
-        api.subscribeToTicker(ticker.name, (newPrice) =>
-          this.updateTicker(ticker.name, newPrice)
-        );
+        api.subscribeToTicker(ticker.name, (newPrice) => {
+          console.log("ticker.name, newPrice", ticker.name, newPrice);
+          this.updateTicker(ticker.name, newPrice);
+        });
       });
     }
 
-    setInterval(this.updateTickers, 200000);
+    setInterval(this.updateTicker, 2000);
   },
   mounted() {
     if (coinsListJson.Response === "Success") {
@@ -281,9 +282,15 @@ export default {
   },
   methods: {
     updateTicker(tickerName, price) {
+      console.log(tickerName, price);
       this.tickers
         .filter((t) => t.name === tickerName)
-        .forEach((t) => (t.price = price));
+        .forEach((t) => {
+          if (t === this.selectedTicker) {
+            this.graph.push(price);
+          }
+          t.price = price;
+        });
     },
     formatPrice(price) {
       if (price === "-") return price;
@@ -292,20 +299,11 @@ export default {
     nextPage() {
       this.page = Number(this.page) + 1;
     },
-
-    /* async updateTickers() {
-      if (!this.tickers.length) return;
-
-      this.tickers.forEach((ticker) => {
-        const price = exchangeData[ticker.name.toUpperCase()];
-        ticker.price = price ?? "-";
-      });
-    }, */
     add() {
       // this.newCoin = [];
       // if (!this.ticker.length) return;
-      const hasTicker = this.tickers.find((item) => item.name === this.ticker);
-      if (hasTicker) return;
+      // const hasTicker = this.tickers.find((item) => item.name === this.ticker);
+      // if (hasTicker) return;
 
       const currentTicker = {
         name: this.ticker,
