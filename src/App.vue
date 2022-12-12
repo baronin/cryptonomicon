@@ -96,9 +96,10 @@
             :key="t.name"
             @click="select(t)"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
-            :class="{
-              'border-4': selectedTicker === t
-            }"
+            :class="[
+              { 'border-4': selectedTicker === t },
+              { 'bg-red-400': formatPrice(t.price) === '-' }
+            ]"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
@@ -137,7 +138,10 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
           {{ selectedTicker.name }} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
+        <div
+          ref="graph"
+          class="flex items-end border-gray-600 border-b border-l h-64"
+        >
           <div
             v-for="bar in normalizedGraph"
             :key="bar"
@@ -202,7 +206,8 @@ export default {
       selectedTicker: null,
       graph: [],
       topCoins: ["BTC", "DOGE", "BCH", "CHD"],
-      page: 1
+      page: 1,
+      maxGraphElements: 1
     };
   },
   created() {
@@ -236,9 +241,10 @@ export default {
       });
     }
 
-    setInterval(this.updateTicker, 2000);
+    setInterval(this.updateTicker, 5000);
   },
   mounted() {
+    window.addEventListener("resize", this.calculateMaxGraphElements);
     if (coinsListJson.Response === "Success") {
       for (let key of Object.keys(Object.assign(coinsListJson.Data))) {
         this.coinsList.push(key.toLocaleLowerCase());
@@ -246,6 +252,10 @@ export default {
     }
     document.addEventListener("click", this.handleClickOutside);
   },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.calculateMaxGraphElements);
+  },
+
   computed: {
     startIndex() {
       return (this.page - 1) * 6;
@@ -281,13 +291,20 @@ export default {
     }
   },
   methods: {
+    calculateMaxGraphElements() {
+      if (!this.$refs.graph) return;
+      this.maxGraphElements = this.$refs.graph.clientWidth / 38;
+    },
     updateTicker(tickerName, price) {
-      console.log(tickerName, price);
+      console.log("updateTicker", this.$refs.graph);
       this.tickers
         .filter((t) => t.name === tickerName)
         .forEach((t) => {
           if (t === this.selectedTicker) {
             this.graph.push(price);
+            while (this.graph.length > this.maxGraphElements) {
+              this.graph.shift();
+            }
           }
           t.price = price;
         });
@@ -354,8 +371,10 @@ export default {
     }
   },
   watch: {
-    selectedTicker() {
+    async selectedTicker() {
       this.graph = [];
+      await this.$nextTick();
+      this.calculateMaxGraphElements();
     },
     tickers(newValue, oldValue) {
       // TODO почему не сработал watch при добавлении
