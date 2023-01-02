@@ -1,4 +1,5 @@
 module.exports = {
   trailingComma: "none",
-  endOfLine: "auto"
+  endOfLine: "auto",
+  printWidth: 80
 };
