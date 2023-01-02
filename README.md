@@ -23,4 +23,8 @@ npm run lint
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
 
+# Install tailwind
+npx @vue/cli add tailwind
+npm install @tailwindcss/forms
+
 that's all
