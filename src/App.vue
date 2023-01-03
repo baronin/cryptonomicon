@@ -1,5 +1,34 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+    <!-- modal -->
+    <button type="button" @click="openModal">Open Modal</button>
+    <v-modal
+      :open="isOpenModal"
+      @close="isOpenModal = false"
+      @ok="modalConfirmed"
+    >
+      You will know vue
+      <template #actions="{ close, confirm }">
+        Send
+        <input
+          v-model="confirmation"
+          :placeholder="$options.CONFIRMATION_TEXT"
+          type="text"
+        />
+        <button
+          type="button"
+          :disabled="!isConfirmationCorrect"
+          @click="confirm('ok')"
+          class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-blue-500 hover:border-transparent rounded"
+          :class="{ 'opacity-50 cursor-not-allowed': !isConfirmationCorrect }"
+        >
+          OK
+        </button>
+        <button type="button" @click="close">close</button>
+
+      </template>
+    </v-modal>
+    <!-- end modal -->
     <spinner v-if="isLoading" />
     <div class="container">
       <add-ticker @add-ticker="add" :disabled="toManyTickersAdded" />
@@ -13,7 +42,7 @@
             class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l"
             @click="page = page - 1"
           >
-            Назад
+            Prev
           </button>
           <button
             v-if="hasNextPage"
@@ -21,11 +50,11 @@
             class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-r"
             @click="nextPage"
           >
-            Вперед
+            Next
           </button>
         </div>
-        <p>Фильтр: <input v-model="filter" placeholder="filter" /></p>
-        <p>Страница {{ page }}</p>
+        <p>Filter: <input v-model="filter" placeholder="filter" /></p>
+        <p>Page {{ page }}</p>
         <hr class="w-full border-t border-gray-600 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
@@ -64,13 +93,17 @@
                   clip-rule="evenodd"
                 ></path>
               </svg>
-              Удалить
+              Remove
             </button>
           </div>
         </dl>
         <hr class="w-full border-t border-gray-600 my-4" />
       </template>
-      <v-chart v-if="selectedTicker" :selected-ticker="selectedTicker" :graph="graph" />
+      <v-chart
+        v-if="selectedTicker"
+        :selected-ticker="selectedTicker"
+        :graph="graph"
+      />
     </div>
   </div>
 </template>
@@ -82,10 +115,12 @@ import coinsListJson from "./mockData/coinsList.json";
 import { api } from "./api";
 import AddTicker from "@/components/AddTicker";
 import VChart from "@/components/chart";
+import VModal from "@/components/Modal";
 
 export default {
   name: "App",
   components: {
+    VModal,
     VChart,
     AddTicker,
     Spinner
@@ -93,6 +128,8 @@ export default {
   },
   data() {
     return {
+      confirmation: "",
+      isOpenModal: false,
       isLoading: false,
       isOpen: false,
       newCoin: [],
@@ -152,8 +189,11 @@ export default {
   beforeUnmount() {
     window.removeEventListener("resize", this.calculateMaxGraphElements);
   },
-
+  CONFIRMATION_TEXT: "CONFIRM",
   computed: {
+    isConfirmationCorrect() {
+      return this.confirmation === this.$options.CONFIRMATION_TEXT;
+    },
     startIndex() {
       return (this.page - 1) * 6;
     },
@@ -181,6 +221,17 @@ export default {
     }
   },
   methods: {
+    openModal() {
+      this.confirmation = '';
+      this.isOpenModal = true;
+    },
+    modalConfirmed() {
+      alert("confirm");
+      this.isOpenModal = false;
+    },
+    close() {
+      console.log("close");
+    },
     calculateMaxGraphElements() {
       if (!this.$refs.graph) return;
       this.maxGraphElements = this.$refs.graph.clientWidth / 38;
