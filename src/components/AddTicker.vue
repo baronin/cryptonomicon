@@ -3,7 +3,7 @@
     <div class="flex">
       <div class="max-w-xs">
         <label for="wallet" class="block text-sm font-medium text-gray-700"
-          >Тикер {{ ticker }}</label
+          >Ticker {{ ticker }}</label
         >
         <div class="mt-1 relative rounded-md shadow-md">
           <input
@@ -14,7 +14,7 @@
             name="wallet"
             id="wallet"
             class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
-            placeholder="Например DOGE"
+            placeholder="Example DOGE"
           />
         </div>
         <!-- <autocomplate
@@ -39,7 +39,7 @@
         </div>
       </div>
     </div>
-    <add-button :disabled="disabled" @click="add" class="my-4" />
+    <add-button @click="add" :disabled="disabled" class="my-4" />
   </section>
 </template>
 
