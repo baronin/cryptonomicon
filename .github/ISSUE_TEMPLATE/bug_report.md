@@ -1,17 +1,17 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
+title: 'bug: '
 labels: bug
 assignees: ''
 
 ---
 
-**Заголовок / Краткое описание / Тема / Summary / Titl**
+**Заголовок / Краткое описание / Тема / Summary / Title**
 Четкое и краткое описание ошибки.
 
 **Воспроизвести**
-Шаги к воспроизведениюr:
+Шаги к воспроизведению:
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
@@ -23,12 +23,12 @@ assignees: ''
 **Скриншот / видео**
 Если применимо, добавьте снимки экрана, чтобы объяснить вашу проблему.
 
-**Desktop (please complete the following information):**
+**Десктоп (Пожалуйста, заполните следующую информацию):**
  - OS: [e.g. iOS]
  - Browser [e.g. chrome, safari]
  - Version [e.g. 22]
 
-**Smartphone (please complete the following information):**
+**Смартфон (Пожалуйста, заполните следующую информацию):**
  - Device: [e.g. iPhone6]
  - OS: [e.g. iOS8.1]
  - Browser [e.g. stock browser, safari]
